@@ -1,10 +1,12 @@
 package com.jsouptest.pingyin;
 
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
+import com.github.stuxuhai.jpinyin.PinyinFormat;
+import com.github.stuxuhai.jpinyin.PinyinHelper;
+
+import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,39 +32,37 @@ public class CSVFileUtil {
      *
      * @throws Exception
      */
-    public void readLine() throws Exception {
-
+    public void readLine(String tager) throws Exception {
+        PrintWriter printWriter = new PrintWriter(new FileWriter(tager, true));
         StringBuffer readLine = new StringBuffer();
         boolean bReadNext = true;
         String[] array;
         int i = 0;
-        while (bReadNext) {
-            //
-
-            // 一行
+        try {
             String strReadLine = br.readLine();
+            while ((strReadLine = br.readLine()) != null) {
 
-            // readLine is Null
-            if (strReadLine == null) {
-                continue;
+                array = strReadLine.split(",");
+                if (array.length < 5) {
+                    continue;
+                }
+
+                String name = array[0].trim().replaceAll("[\\uE096\\uF8F5、]", "");
+                String CtfId = array[4].trim();
+
+                try {
+                    printWriter.println(name + "," + PinyinHelper.convertToPinyinString(name, "", PinyinFormat.WITHOUT_TONE) + "," + CtfId);
+                } catch (Exception e) {
+                    System.out.println(name + CtfId);
+                }
+
+
             }
-
-            i++;
-            if (i == 100) {
-                break;
-            }
-            // 如果双引号是奇数的时候继续读取。考虑有换行的是情况。
-//            if (countChar(readLine.toString(), '"', 0) % 2 == 1) {
-//                bReadNext = true;
-//            } else {
-//                bReadNext = false;
-//            }
-            array = strReadLine.split(",");
-            if (isChineseChar(array[0])) {
-
-                System.out.println(array[0] + "\t" + TranPingyin.converterToSpell(array[0]) + "\t" + array[4]);
-            } else {
-                System.out.println(array[0] + "\t" + array[0] + "\t" + array[4]);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (printWriter != null) {
+                printWriter.close();
             }
         }
     }
@@ -95,6 +95,40 @@ public class CSVFileUtil {
         }
         return temp;
     }
+
+    /**
+     * 提取中文
+     *
+     * @param str
+     * @return
+     */
+    public static String extractChineseChar(String str) {
+        boolean temp = false;
+        Pattern p = Pattern.compile("[\u4e00-\u9fa5]*");
+        Matcher m = p.matcher(str);
+        if (m.find()) {
+            temp = true;
+        }
+
+        return m.group();
+    }
+
+    /**
+     * 判断是否为中文
+     *
+     * @param str
+     * @return
+     */
+    public static boolean hasluanma(String str) {
+        boolean temp = false;
+        Pattern p = Pattern.compile("[\\uF8F5,\\uE863,\\uE81B]");
+        Matcher m = p.matcher(str);
+        if (m.find()) {
+            temp = true;
+        }
+        return temp;
+    }
+
 
     /**
      * 把CSV文件的一行转换成字符串数组。不指定数组长度。
@@ -233,8 +267,5 @@ public class CSVFileUtil {
         return sb.toString();
     }
 
-    public static void main(String[] args) throws Exception {
-        CSVFileUtil csvFileUtil = new CSVFileUtil("/Users/chenzhilei/Downloads/最后5000.csv");
-        csvFileUtil.readLine();
-    }
+
 }
